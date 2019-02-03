@@ -4,10 +4,14 @@ from flask import Flask, jsonify, request
 from os.path import join
 from os import makedirs
 from uuid import uuid4
+from base64 import b64encode
+
+DATABASE_FILENAME = 'db.sqlite'
+DATABASE_IMAGES_DIRECTORY = 'images'
 
 app = Flask(__name__)
 app.config.from_mapping(
-    DATABASE = join(app.instance_path,'db.sqlite')
+    DATABASE = join(app.instance_path,DATABASE_FILENAME)
 )
 
 try:
@@ -73,8 +77,15 @@ def get_face_image():
             return response
         else:
             filename = record[1]
+            filename = join(app.instance_path,DATABASE_IMAGES_DIRECTORY,filename)
+            try:
+                with open(filename, 'rb') as image:
+                    base64_image = b64encode(image).decode('ascii')
+            except FileNotFoundError:
+                response = jsonify(status=4, id=id)
+                response.status_code = 500
+                return response
             probability = record[3]
-            base64_image = ...
             response = jsonify(status=0, id=id,
                 probability=probability, image=base64_image)
             response.status_code = 200
