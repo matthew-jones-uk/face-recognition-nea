@@ -1,6 +1,6 @@
 import face_detection
 import db
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from os.path import join
 from os import makedirs
 from uuid import uuid4
@@ -22,12 +22,10 @@ db.init_db()
 Error Codes:
 0 - Success
 1 - Database Empty
-2 - Invalid UUID
+2 - Invalid ID
 3 - Invalid vote
 4 - Invalid JSON data
 '''
-
-
 
 _temp_ids = dict()
 
@@ -39,7 +37,7 @@ def get_face_id():
         if uuid not in _temp_ids:
             created_id = True
     random_image_record = db.get_db().execute(
-        'SELECT * FROM table'
+        'SELECT * FROM images'
         'WHERE id IN (SELECT id FROM table ORDER BY RANDOM() LIMIT 1)'
         'AND active = 1'
     ).fetchone()
@@ -53,9 +51,35 @@ def get_face_id():
         response.status_code = 200
         return response
 
-@app.route('/getFaceImage', methods=['POST'])
+@app.route('/getFaceImage', methods=['GET'])
 def get_face_image():
-    ...
+    try:
+        id = request.headers.get('id')
+    except KeyError:
+        response = jsonify(status=4, id="")
+        response.status_code = 400
+        return response
+    record = db.get_db().execute(
+        'SELECT * FROM images WHERE id="{}"'.format(id)
+    ).fetchone()
+    if record is None:
+        response = jsonify(status=2, id=id)
+        response.status_code = 404
+        return response
+    else:
+        if record[7] == 0:
+            response = jsonify(status=2, id=id)
+            response.status_code = 410
+            return response
+        else:
+            filename = record[1]
+            probability = record[3]
+            base64_image = ...
+            response = jsonify(status=0, id=id,
+                probability=probability, image=base64_image)
+            response.status_code = 200
+            return response
+
 
 @app.route('/giveVote', methods=['POST'])
 def give_vote():
