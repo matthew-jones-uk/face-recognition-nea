@@ -94,7 +94,17 @@ def get_face_image():
 
 @app.route('/giveVote', methods=['POST'])
 def give_vote():
-    ...
+    json = request.get_json(silent=True)
+    if json is None :
+        response = jsonify(status=4)
+        response.status_code = 400
+        return response
+    elif 'id' not in json or 'vote' not in json:
+        response = jsonify(status=4)
+        response.status_code = 400
+        return response
+    else:
+        ...
 
 if __name__ == '__main__':
     app.run(debug=True)
