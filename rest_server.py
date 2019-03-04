@@ -1,10 +1,9 @@
-import face_detection
-import db
-from flask import Flask, jsonify, request
 from os.path import join
 from os import makedirs
 from uuid import uuid4
 from base64 import b64encode
+from flask import Flask, jsonify, request
+import db
 
 DATABASE_FILENAME = 'db.sqlite'
 DATABASE_IMAGES_DIRECTORY = 'images'
