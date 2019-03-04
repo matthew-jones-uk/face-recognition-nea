@@ -35,10 +35,11 @@ class DetectionOptions():
         self.minimum_factor = minimum_factor
 
 class HOGOptions():
-    def __init__(self, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), window_size=(64, 64)):
+    def __init__(self, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), nbins=9, window_size=(64, 64)):
         self.orientations = orientations
         self.pixels_per_cell = pixels_per_cell
         self.cells_per_block = cells_per_block
+        self.nbins = nbins
         self.window_size = window_size
 
 class TrainingOptions():
@@ -129,7 +130,6 @@ def generate_hog_data(image, hog_options=HOGOptions()):
     hog_image = hog(image,orientations=hog_options.orientations, pixels_per_cell=hog_options.pixels_per_cell,
         cells_per_block=hog_options.cells_per_block)  # Calculate the Histogram of Orientate Gradients for the desired window.
     return hog_image
-
 
 def generate_hog_data_from_dir(folder_path, hog_options=HOGOptions(), limit=None):
     images = listdir(path=folder_path)
