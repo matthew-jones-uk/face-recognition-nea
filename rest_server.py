@@ -11,7 +11,7 @@ DATABASE_IMAGES_DIRECTORY = 'images'
 
 app = Flask(__name__)
 app.config.from_mapping(
-    DATABASE = join(app.instance_path,DATABASE_FILENAME)
+    DATABASE = join(app.instance_path, DATABASE_FILENAME)
 )
 
 try:
@@ -70,26 +70,25 @@ def get_face_image():
         response = jsonify(status=2, id=id)
         response.status_code = 404
         return response
+    elif record[7] == 0:
+        response = jsonify(status=2, id=id)
+        response.status_code = 410
+        return response
     else:
-        if record[7] == 0:
-            response = jsonify(status=2, id=id)
-            response.status_code = 410
+        filename = record[1]
+        filename = join(app.instance_path, DATABASE_IMAGES_DIRECTORY, filename)
+        try:
+            with open(filename, 'rb') as image:
+                base64_image = b64encode(image).decode('ascii')
+        except FileNotFoundError:
+            response = jsonify(status=4, id=id)
+            response.status_code = 500
             return response
-        else:
-            filename = record[1]
-            filename = join(app.instance_path,DATABASE_IMAGES_DIRECTORY,filename)
-            try:
-                with open(filename, 'rb') as image:
-                    base64_image = b64encode(image).decode('ascii')
-            except FileNotFoundError:
-                response = jsonify(status=4, id=id)
-                response.status_code = 500
-                return response
-            probability = record[3]
-            response = jsonify(status=0, id=id,
-                probability=probability, image=base64_image)
-            response.status_code = 200
-            return response
+        probability = record[3]
+        response = jsonify(status=0, id=id,
+            probability=probability, image=base64_image)
+        response.status_code = 200
+        return response
 
 
 @app.route('/giveVote', methods=['POST'])
