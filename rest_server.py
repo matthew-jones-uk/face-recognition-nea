@@ -58,20 +58,20 @@ def get_face_id():
 @app.route('/getFaceImage', methods=['GET'])
 def get_face_image():
     try:
-        id = request.headers.get('id')
+        given_id = request.headers.get('id')
     except KeyError:
         response = jsonify(status=4, id="")
         response.status_code = 400
         return response
     record = db.get_db().execute(
-        'SELECT * FROM images WHERE id="{}"'.format(id)
+        'SELECT * FROM images WHERE id="{}"'.format(given_id)
     ).fetchone()
     if record is None:
-        response = jsonify(status=2, id=id)
+        response = jsonify(status=2, id=given_id)
         response.status_code = 404
         return response
     elif record[7] == 0:
-        response = jsonify(status=2, id=id)
+        response = jsonify(status=2, id=given_id)
         response.status_code = 410
         return response
     else:
@@ -81,12 +81,12 @@ def get_face_image():
             with open(filename, 'rb') as image:
                 base64_image = b64encode(image).decode('ascii')
         except FileNotFoundError:
-            response = jsonify(status=4, id=id)
+            response = jsonify(status=4, id=given_id)
             response.status_code = 500
             return response
         probability = record[3]
-        response = jsonify(status=0, id=id,
-            probability=probability, image=base64_image)
+        response = jsonify(status=0, id=given_id,
+                           probability=probability, image=base64_image)
         response.status_code = 200
         return response
 
@@ -94,7 +94,7 @@ def get_face_image():
 @app.route('/giveVote', methods=['POST'])
 def give_vote():
     json = request.get_json(silent=True)
-    if json is None :
+    if json is None:
         response = jsonify(status=4)
         response.status_code = 400
         return response
@@ -103,7 +103,29 @@ def give_vote():
         response.status_code = 400
         return response
     else:
-        ...
+        given_id, vote = json['id'], json['vote']
+        record = db.get_db().execute(
+            'SELECT * FROM images WHERE id="{}"'.format(given_id)
+        ).fetchone()
+        if record is None:
+            response = jsonify(status=2, id=given_id)
+            response.status_code = 404
+            return response
+        if vote:
+            db.get_db().execute(
+                'UPDATE images'
+                'SET positive_votes = positive_votes + 1'
+                'WHERE id="{}"'.format(given_id)
+            )
+        else:
+            db.get_db().execute(
+                'UPDATE images'
+                'SET negative_votes = negative_votes + 1'
+                'WHERE id="{}"'.format(given_id)
+            )
+        response = jsonify(status=0, id=given_id)
+        response.status_code = 200
+        return response
 
 if __name__ == '__main__':
     app.run(debug=True)
