@@ -28,7 +28,7 @@ class Face():
 
 class DetectionOptions():
     def __init__(self, factor_difference = 0.5, overlap_percentage = 0.1, 
-                accept_threshold = 0.9, minimum_factor= 1):
+                 accept_threshold = 0.9, minimum_factor= 1):
         self.factor_difference = factor_difference
         self.overlap_percentage = overlap_percentage
         self.accept_threshold = accept_threshold
@@ -127,7 +127,7 @@ def generate_hog_data(image, hog_options=HOGOptions()):
     if image.shape != hog_options.window_size:
         print('Resizing this could potentially lead to bad data')
         image = resize(image,hog_options.window_size)
-    hog_image = hog(image,orientations=hog_options.orientations, pixels_per_cell=hog_options.pixels_per_cell,
+    hog_image = hog(image, orientations=hog_options.orientations, pixels_per_cell=hog_options.pixels_per_cell,
         cells_per_block=hog_options.cells_per_block)  # Calculate the Histogram of Orientate Gradients for the desired window.
     return hog_image
 
