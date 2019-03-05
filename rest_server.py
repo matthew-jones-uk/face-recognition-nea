@@ -117,10 +117,13 @@ def give_vote():
         response.status_code = 200
         return response
 
-if __name__ == '__main__':
+def run():
     if not isdir(INSTANCE):
         makedirs(INSTANCE)
     if not isdir(join(INSTANCE, DATABASE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
     db.init_db(join(INSTANCE, DATABASE_FILENAME))
     app.run(debug=True, host="0.0.0.0")
+
+if __name__ == '__main__':
+    run()
