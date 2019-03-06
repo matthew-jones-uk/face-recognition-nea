@@ -1,13 +1,16 @@
 from os.path import join, isdir
-from os import makedirs
+from os import makedirs, listdir, rename
+from time import sleep
 from base64 import b64encode
 from flask import Flask, jsonify, request
 import db
+import face_detection
 
 INSTANCE = 'instance'
 DATABASE_FILENAME = 'db.sqlite'
 DATABASE_IMAGES_DIRECTORY = 'images'
 DATABASE_TESTING_IMAGES_DIRECTORY = 'testing_images'
+ROOT_MODEL_FILENAME = 'model.sav'
 
 app = Flask(__name__)
 
@@ -117,6 +120,21 @@ def give_vote():
         response = jsonify(status=0, id=given_id)
         response.status_code = 200
         return response
+
+def get_model():
+    ...
+
+def detect_faces(image):
+    model = get_model()
+    found_images = face_detection.find_all_face_boxes(image, model)
+
+def new_image_detector():
+    while True:
+        files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
+        if len(files) == 0:
+            continue
+        for image_file in files:
+            ...
 
 def run():
     if not isdir(INSTANCE):
