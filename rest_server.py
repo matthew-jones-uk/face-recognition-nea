@@ -1,9 +1,11 @@
 from os.path import join, isdir
-from os import makedirs, listdir, rename
-from time import sleep
+from os import makedirs, listdir, rename, remove
+from time import sleep, time
 from base64 import b64encode
+from uuid import uuid4
 import pickle
 from flask import Flask, jsonify, request
+from skimage.io import imsave
 import db
 import face_detection
 
@@ -153,8 +155,37 @@ def new_image_detector():
         files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
         if len(files) == 0:
             continue
+        faces = list()
         for image_file in files:
-            detect_faces()
+            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
+                        image_file)))
+            remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
+        for face in faces:
+            connection = db.get_db(join(INSTANCE, DATABASE_FILENAME))
+            checking = True
+            while checking:
+                unique_id = uuid4()
+                record = connection.execute('SELECT * FROM images WHERE id = {}'.format(unique_id)).fetchone()
+                if len(record) == 0:
+                    checking = False
+            filename = unique_id+'.png'
+            needed_votes = 10 - round(face.probability*100, -1)/10
+            connection.execute("""
+                INSERT INTO images (
+                    id,
+                    filename,
+                    start_date,
+                    probability,
+                    needed_votes
+                ) VALUES (
+                    {},
+                    {},
+                    {},
+                    {},
+                    {}
+                )
+            """.format(unique_id, filename, time(), face.probability, needed_votes))
+            imsave(filename, face.face_image)
         sleep(DETECTOR_TIMEOUT)
 
 def run():
