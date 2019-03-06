@@ -7,6 +7,7 @@ import db
 INSTANCE = 'instance'
 DATABASE_FILENAME = 'db.sqlite'
 DATABASE_IMAGES_DIRECTORY = 'images'
+DATABASE_TESTING_IMAGES_DIRECTORY = 'testing_images'
 
 app = Flask(__name__)
 
@@ -122,6 +123,8 @@ def run():
         makedirs(INSTANCE)
     if not isdir(join(INSTANCE, DATABASE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
+    if not isdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY)):
+        makedirs(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
     db.init_db(join(INSTANCE, DATABASE_FILENAME))
     app.run(debug=True, host="0.0.0.0")
 
