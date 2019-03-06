@@ -12,6 +12,8 @@ DATABASE_IMAGES_DIRECTORY = 'images'
 DATABASE_TESTING_IMAGES_DIRECTORY = 'testing_images'
 ROOT_MODEL_FILENAME = 'model.sav'
 
+DETECTOR_TIMEOUT = 60
+
 app = Flask(__name__)
 
 '''
@@ -135,6 +137,7 @@ def new_image_detector():
             continue
         for image_file in files:
             ...
+        sleep(DETECTOR_TIMEOUT)
 
 def run():
     if not isdir(INSTANCE):
