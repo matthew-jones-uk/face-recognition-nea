@@ -2,6 +2,7 @@ from os.path import join, isdir
 from os import makedirs, listdir, rename
 from time import sleep
 from base64 import b64encode
+import pickle
 from flask import Flask, jsonify, request
 import db
 import face_detection
@@ -124,11 +125,28 @@ def give_vote():
         return response
 
 def get_model():
-    ...
+    # retrieve all model files and calculate latest based on number after root name
+    all_files = listdir(INSTANCE)
+    model_files = dict()
+    for test_file in all_files:
+        if test_file.startswith(ROOT_MODEL_FILENAME):
+            try:
+                number = int(''.join([int(s) for s in test_file if s.isdigit()]))
+            except ValueError:
+                number = 0
+            model_files[test_file] = number
+    # get highest value in dictionary
+    values = list(model_files.values())
+    keys = list(model_files.keys())
+    model = keys[values.index(max(values))]
+    return pickle.load(join(INSTANCE, model))
 
 def detect_faces(image):
     model = get_model()
-    found_images = face_detection.find_all_face_boxes(image, model)
+    found_faces = face_detection.find_all_face_boxes(image, model)
+    for face in found_faces:
+        face.find_face_image(image)
+    return found_faces
 
 def new_image_detector():
     while True:
@@ -136,7 +154,7 @@ def new_image_detector():
         if len(files) == 0:
             continue
         for image_file in files:
-            ...
+            detect_faces()
         sleep(DETECTOR_TIMEOUT)
 
 def run():
