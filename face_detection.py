@@ -62,7 +62,7 @@ def _sliding_window(image, model, scale, hog_options=HOGOptions(), detection_opt
         hog_options (HOGOptions): Defaults to HOGOptions().
         detection_options (DetectionOptions): Defaults to DetectionOptions().
         scale (double): Scale of the image.
-        
+
     Returns:
         All suspected faces as a list.
     '''
@@ -111,7 +111,7 @@ def find_all_face_boxes(image, complete_model, detection_options=DetectionOption
     scale_factor = detection_options.minimum_factor
     while scale_factor <= maximum_factor:
         scales.append(scale_factor)
-        scale_factor+=detection_options.factor_difference
+        scale_factor += detection_options.factor_difference
     # No maximum processes is defined so it will default to the number of CPU cores.
     pool = Pool()
     # Creates a partial object so that the pool map can properly pass arguments to the sliding window function.
@@ -146,12 +146,12 @@ def generate_hog_data_from_dir(folder_path, hog_options=HOGOptions(), limit=None
             print('Failed to load '+image_name)
     return hog_data
 
-def calculate_equalise(x, y):
+def _calculate_equalise(x, y):
     return min(x, y)
 
 def split_training_data(x, y, test_percentage=0.2, equalise=True):
     if equalise and len(x) != len(y):
-        max_value = calculate_equalise(len(x),len(y))
+        max_value = _calculate_equalise(len(x),len(y))
         x = x[:max_value]
         y = y[:max_value]
     x_test_size = int(len(x)*test_percentage)
