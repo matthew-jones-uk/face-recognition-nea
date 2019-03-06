@@ -62,6 +62,7 @@ def _sliding_window(image, model, scale, hog_options=HOGOptions(), detection_opt
         hog_options (HOGOptions): Defaults to HOGOptions().
         detection_options (DetectionOptions): Defaults to DetectionOptions().
         scale (double): Scale of the image.
+        
     Returns:
         All suspected faces as a list.
     '''
@@ -86,12 +87,12 @@ def _sliding_window(image, model, scale, hog_options=HOGOptions(), detection_opt
 
 def find_all_face_boxes(image, complete_model, detection_options=DetectionOptions()):
     '''A function to create _sliding_window() processes to detect faces.
-    
+
     Args:
         image (list): An list represented image to scan.
         complete_model (Model): An object containing a sklearn LinearSVM model with proba and the HOG configuration it was trained with.
-        detection_options (DetectionOptions): Defaults to DetectionOptions(). [description]
-    
+        detection_options (DetectionOptions): Defaults to DetectionOptions().
+
     Returns:
         list: A list containing detected faces in the form of Face objects.
     '''
