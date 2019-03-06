@@ -53,6 +53,9 @@ class Model():
         self.accuracy = accuracy
         self.hog_options = hog_options
 
+def load_image(path):
+    return imread(path)
+
 def _sliding_window(image, model, scale, hog_options=HOGOptions(), detection_options=DetectionOptions()):
     '''A sliding window worker method to find faces using image pyramid scales.
     
@@ -139,7 +142,7 @@ def generate_hog_data_from_dir(folder_path, hog_options=HOGOptions(), limit=None
     hog_data = list()
     for image_name in images:
         try:
-            image = imread(join(folder_path,image_name), as_gray=True)
+            image = load_image(join(folder_path,image_name), as_gray=True)
             hog_image = generate_hog_data(image, hog_options=hog_options)
             hog_data.append(hog_image)
         except FileNotFoundError:
