@@ -27,8 +27,8 @@ class Face():
         return self.face_image
 
 class DetectionOptions():
-    def __init__(self, factor_difference = 0.5, overlap_percentage = 0.1, 
-                 accept_threshold = 0.9, minimum_factor= 1):
+    def __init__(self, factor_difference=0.5, overlap_percentage=0.1, 
+                 accept_threshold=0.9, minimum_factor=1):
         self.factor_difference = factor_difference
         self.overlap_percentage = overlap_percentage
         self.accept_threshold = accept_threshold
