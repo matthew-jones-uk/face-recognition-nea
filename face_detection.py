@@ -208,7 +208,7 @@ def premade_train(positive_train, negative_train, positive_test, negative_test):
 def train(positive_faces_filepath, negative_faces_filepath, hog_options=HOGOptions(), training_options=TrainingOptions()):
     positive_hog = generate_hog_data_from_dir(positive_faces_filepath, hog_options=hog_options)
     negative_hog = generate_hog_data_from_dir(negative_faces_filepath, hog_options=hog_options)
-    pos_train, neg_train , pos_test, neg_test = split_training_data(positive_hog, negative_hog,
+    pos_train, neg_train, pos_test, neg_test = split_training_data(positive_hog, negative_hog,
         test_percentage=training_options.testing_proportion, equalise=training_options.equalise)
     svm_model, score = premade_train(pos_train, neg_train, pos_test, neg_test)
     model = Model(svm_model, round(score), hog_options)
