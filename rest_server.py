@@ -53,6 +53,7 @@ def get_face_image():
     try:
         given_id = request.headers.get('id')
     except KeyError:
+        # if there's no id, return status 400 bad request with invalid json data json status code
         response = jsonify(status=4, id="")
         response.status_code = 400
         return response
@@ -62,14 +63,17 @@ def get_face_image():
     ).fetchone()
     connection.close()
     if record is None:
+        # if no record is found, return status 404 not found with invalid id json status code
         response = jsonify(status=2, id=given_id)
         response.status_code = 404
         return response
     elif record[7] == 0:
+        # if no longer active in database, return status 410 gone with invalid id json status code
         response = jsonify(status=2, id=given_id)
         response.status_code = 410
         return response
     else:
+        # set filename and open file
         filename = record[1]
         filename = join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename)
         try:
@@ -81,6 +85,7 @@ def get_face_image():
             response.status_code = 500
             return response
         probability = record[3]
+        # return with status 200 OK and success status code
         response = jsonify(status=0, id=given_id,
                            probability=probability, image=base64_image)
         response.status_code = 200
@@ -92,24 +97,29 @@ def give_vote():
     """ Function for the route to give a vote on whether or not a face """
     json = request.get_json(silent=True)
     if json is None:
+        # check for json data, if not found then return status 400 bad request with 'invalid json' json status code
         response = jsonify(status=4)
         response.status_code = 400
         return response
     elif 'id' not in json or 'vote' not in json:
+        # if id/vote not found in json, then return status 400 bad request with 'invalid json' json status code
         response = jsonify(status=4)
         response.status_code = 400
         return response
     else:
         given_id, vote = json['id'], json['vote']
         connection = db.get_db(join(INSTANCE, DATABASE_FILENAME))
+        # check if id is valid in database
         record = connection.execute(
             'SELECT * FROM images WHERE id = "{}"'.format(given_id)
         ).fetchone()
         if record is None:
             connection.close()
+            # if id is invalid return status 400 not found with invalid id json status code
             response = jsonify(status=2, id=given_id)
             response.status_code = 404
             return response
+        # consider the vote according to json data and add to database
         if vote:
             connection.execute("""
                 UPDATE images
@@ -125,6 +135,7 @@ def give_vote():
             """.format(given_id))
             connection.commit()
         connection.close()
+        # return status code 200 OK and success json status code
         response = jsonify(status=0, id=given_id)
         response.status_code = 200
         return response
@@ -176,14 +187,17 @@ def new_image_detector():
     Should be run in own process due to CPU and IO heavy and blocking nature.
     """
     while True:
+        # get all files in directory
         files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
         if len(files) == 0:
             continue
         faces = list()
+        # for every file in directory, detect faces and remove file
         for image_file in files:
             faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
                         image_file)))
             remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
+        # for any detected face generate unique id, save file and add to database
         for face in faces:
             connection = db.get_db(join(INSTANCE, DATABASE_FILENAME))
             checking = True
@@ -193,6 +207,7 @@ def new_image_detector():
                 if len(record) == 0:
                     checking = False
             filename = unique_id+'.png'
+            # calculate needed votes out of 10
             needed_votes = 10 - round(face.probability*100, -1)/10
             connection.execute("""
                 INSERT INTO images (
@@ -209,6 +224,7 @@ def new_image_detector():
                     {}
                 )
             """.format(unique_id, filename, time(), face.probability, needed_votes))
+            connection.close()
             imsave(filename, face.face_image)
         sleep(DETECTOR_TIMEOUT)
 
