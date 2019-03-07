@@ -189,8 +189,6 @@ def new_image_detector():
     while True:
         # get all files in directory
         files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
-        if len(files) == 0:
-            continue
         faces = list()
         # for every file in directory, detect faces and remove file
         for image_file in files:
