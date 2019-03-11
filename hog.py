@@ -1,15 +1,32 @@
 import numpy as np
 
 class HOGOptions():
-    def __init__(self, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2),
-                 nbins=9, window_size=(64, 64)):
-        self.orientations = orientations
+    '''Object to configure HOG algorithm.
+
+    Args:
+        nbins (int, optional): Defaults to 9. Number of orientation bins for histogram.
+        pixels_per_cell (tuple, optional): Defaults to (8, 8). Should be factors of window size.
+        cells_per_block (tuple, optional): Defaults to (2, 2). Cell number should be a factor.
+        window_size (tuple, optional): Defaults to (64, 64). Size of image window in pixels.
+    '''
+    def __init__(self, nbins=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), 
+                 window_size=(64, 64)):
+        self.nbins = nbins
         self.pixels_per_cell = pixels_per_cell
         self.cells_per_block = cells_per_block
-        self.nbins = nbins
         self.window_size = window_size
 
-def calc_gradient_magnitude(image):
+def calc_gradient_direction_magnitude(image):
+    '''Calculate gradient direction and gradient magnitude for each pixel.
+    
+    Args:
+        image (numpy.array): Numpy array of a black and white image.
+    
+    Returns:
+        gradient (numpy.array): Numpy array of gradient direction.
+        magnitude (numpy.array): Numpy array of gradient magnitude.
+    '''
+
     gradient = np.zeros(image.shape)
     magnitude = np.zeros(image.shape)
     for y in range(image.shape[0]):
@@ -28,6 +45,16 @@ def calc_gradient_magnitude(image):
     return gradient, magnitude
 
 def create_histogram(gradient, magnitude, options=HOGOptions()):
+    '''Create final histogram from gradients and magnitudes.
+    
+    Args:
+        gradient (numpy.array): Numpy array of gradient directions for each pixel.
+        magnitude (numpy.array): Numpy array of gradient magnitudes for each pixel.
+        options (HOGOptions, optional): Defaults to HOGOptions(). HOG algorithm configuration.
+    
+    Returns:
+        blocks (list): 2D list of each block and corresponding histogram.
+    '''
     # calculate number of cells in x and y directions
     n_cells_y = gradient.shape[0] // options.pixels_per_cell[0]
     n_cells_x = gradient.shape[1] // options.pixels_per_cell[1]
@@ -43,4 +70,39 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
         for x in range(gradient.shape[1]):
             # calculates which cell and orientation bin each pixel belongs to and adds its magnitude
             cells[y // n_cells_y][x // n_cells_x][magnitude // bin_size] += magnitude[y][x]
+    # calculate cell overlap amount
+    cell_overlap_y, cell_overlap_x = options.cells_per_block // 2
+    # resize cells and discarded any that don't fit into a block
+    remainder_y = cells.shape % cell_overlap_y
+    remainder_x = cells.shape % cell_overlap_x
+    cells = cells[-remainder_y, -remainder_x]
+    # create blocks with overlap 50%
+    blocks = list()
+    y = 0
+    while y < cells.shape[0]:
+        x = 0
+        while x < cells.shape[1]:
+            # select cells that make up block
+            block = cells[y:y+options.cells_per_block[0], x:x+options.cells_per_block[1]]
+            # combine into a single block
+            block = np.sum(block, axis=2)
+            # normalise using l2-norm
+            normalised_block = block / np.sqrt(np.sum(block) + 1e-7)
+            blocks.append(normalised_block.tolist())
+            x += cell_overlap_x
+        y += cell_overlap_y
+    return blocks
+
+def hog(image, options=HOGOptions()):
+    '''Calculate Histograms of Oriented Gradients for image
     
+    Args:
+        image (numpy.array): Numpy array of black and white image.
+        options (HOGOptions, optional): Defaults to HOGOptions(). HOG algorithm configuration.
+    
+    Returns:
+        histogram (list): 2D list of each block and corresponding histogram.
+    '''
+    gradient, magnitude = calc_gradient_direction_magnitude(image)
+    histogram = create_histogram(gradient, magnitude, options=options)
+    return histogram
