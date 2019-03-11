@@ -1,5 +1,5 @@
 from os.path import join, isdir
-from os import makedirs, listdir, rename, remove
+from os import makedirs, listdir, remove
 from time import sleep, time
 from base64 import b64encode
 from uuid import uuid4
@@ -97,12 +97,14 @@ def give_vote():
     """ Function for the route to give a vote on whether or not a face """
     json = request.get_json(silent=True)
     if json is None:
-        # check for json data, if not found then return status 400 bad request with 'invalid json' json status code
+        # check for json data, if not found then return status 400 bad request with
+        # 'invalid json' json status code
         response = jsonify(status=4)
         response.status_code = 400
         return response
     elif 'id' not in json or 'vote' not in json:
-        # if id/vote not found in json, then return status 400 bad request with 'invalid json' json status code
+        # if id/vote not found in json, then return status 400 bad request with
+        # 'invalid json' json status code
         response = jsonify(status=4)
         response.status_code = 400
         return response
@@ -142,11 +144,9 @@ def give_vote():
 
 def get_model():
     """This function retrieves the latest saved version of the detection model based on filenames.
-    
     Returns:
         face_detection.Model: Detection model
     """
-
     # retrieve all model files and calculate latest based on number after root name
     all_files = listdir(INSTANCE)
     model_files = dict()
@@ -167,14 +167,11 @@ def get_model():
 
 def detect_faces(image):
     """This founction uses the face_detection module to find any faces in an image
-    
     Args:
         image (Image): Skimage image array format
-    
     Returns:
         list: Returns a list of face_detection.Face objects
     """
-
     model = get_model()
     found_faces = face_detection.find_all_face_boxes(image, model)
     for face in found_faces:
@@ -183,8 +180,7 @@ def detect_faces(image):
 
 def new_image_detector():
     """Checks the testing image directory for any new images then processes and adds to database.
-    
-    Should be run in own process due to CPU and IO heavy and blocking nature.
+       Should be run in own process due to CPU and IO heavy and blocking nature.
     """
     while True:
         # get all files in directory
@@ -192,8 +188,7 @@ def new_image_detector():
         faces = list()
         # for every file in directory, detect faces and remove file
         for image_file in files:
-            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
-                        image_file)))
+            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE, image_file)))
             remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
         # for any detected face generate unique id, save file and add to database
         for face in faces:
@@ -201,8 +196,9 @@ def new_image_detector():
             checking = True
             while checking:
                 unique_id = uuid4()
-                record = connection.execute('SELECT * FROM images WHERE id = {}'.format(unique_id)).fetchone()
-                if len(record) == 0:
+                record = connection.execute('SELECT * FROM images WHERE id = {}'.format(unique_id)
+                                                                                        ).fetchone()
+                if not record:
                     checking = False
             filename = unique_id+'.png'
             # calculate needed votes out of 10
