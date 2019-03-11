@@ -9,6 +9,7 @@ from multiprocessing import Pool, Queue
 from functools import partial
 from os.path import join
 from os import listdir
+from hog import HOGOptions
 import logging
 import skimage
 
@@ -33,14 +34,6 @@ class DetectionOptions():
         self.overlap_percentage = overlap_percentage
         self.accept_threshold = accept_threshold
         self.minimum_factor = minimum_factor
-
-class HOGOptions():
-    def __init__(self, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), nbins=9, window_size=(64, 64)):
-        self.orientations = orientations
-        self.pixels_per_cell = pixels_per_cell
-        self.cells_per_block = cells_per_block
-        self.nbins = nbins
-        self.window_size = window_size
 
 class TrainingOptions():
     def __init__(self, testing_proportion=0.15, equalise=True):
