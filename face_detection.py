@@ -1,3 +1,9 @@
+from multiprocessing import Pool, Queue
+from functools import partial
+from os.path import join
+from os import listdir
+import logging
+import warnings
 #from skimage.feature import hog
 from skimage.transform import rescale, resize
 from skimage.color import rgb2gray
@@ -5,50 +11,85 @@ from skimage.io import imread
 from sklearn.model_selection import GridSearchCV
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import LinearSVC
-from multiprocessing import Pool, Queue
-from functools import partial
-from os.path import join
-from os import listdir
 from hog import HOGOptions
 from hog import hog
-import logging
-import skimage
 
-import warnings
+# Disable unnecessary sklearn warning spam.
 warnings.filterwarnings('ignore')
 
 class Face():
-    def __init__(self, top_left, bottom_right, probability):
+    '''Face object to store information on a detected face.
+    Args:
+        top_left (tuple(integer, integer)): y and x index values of the top left of the face.
+        bottom_right (tuple(integer, integer)): y and x valiues of the bottom left of the face.
+        probability (float): Probability that the detected face is a face.
+        face_image (numpy.array, optional): Defaults to None. Numpy array of cropped face image.
+    '''
+    def __init__(self, top_left, bottom_right, probability, face_image=None):
         self.top_left = top_left
         self.bottom_right = bottom_right
         self.probability = probability
-        self.face_image = None
+        self.face_image = face_image
 
     def find_face_image(self, image):
+        '''Find the face and crop given the full image and store the image inside object. Not done
+           by default to preserve memory usage.
+        Args:
+            image (numpy.array): Full image containing face in numpy array form.
+        Returns:
+            face_image (numpy.array): Cropped image of face in numpy array form.
+        '''
         self.face_image = image[self.top_left[0]:self.bottom_right[0],self.top_left[1]:self.bottom_right[1]]
         return self.face_image
 
 class DetectionOptions():
-    def __init__(self, factor_difference=0.5, overlap_percentage=0.1, 
-                 accept_threshold=0.9, minimum_factor=1):
+    '''Detection options object to store detection configuration that's not for the HOG.
+    Args:
+        factor_difference (float): Defaults to 0.5. The factor to increase by for image pyramid.
+        overlap_percentage (float): Defaults to 0.1. The percentage of the sliding window to
+                                    move by each time.
+        accept_threshold (float): Defaults to 0.7. The confidence threshold to accept an image as
+                                  a face.
+        minimum_factor (float): Defaults to 1.0. The default factor of a window to start the image
+                                pyramid at
+    '''
+    def __init__(self, factor_difference=0.5, overlap_percentage=0.1,
+                 accept_threshold=0.7, minimum_factor=1.0):
         self.factor_difference = factor_difference
         self.overlap_percentage = overlap_percentage
         self.accept_threshold = accept_threshold
         self.minimum_factor = minimum_factor
 
 class TrainingOptions():
+    '''Training options object to store testing proportion configuration and equalisation option.
+    Args:
+        testing_proportion (float): Defaults to 0.15. Proportion of dataset used as testing data.
+        equalise (bool): If the datasets should be of equal size.
+    '''
     def __init__(self, testing_proportion=0.15, equalise=True):
         self.testing_proportion = testing_proportion
         self.equalise = equalise
 
 class Model():
+    '''Model options object to store SVM model, accuracy and configuration in one object.
+    Args:
+        svm_model (LinearSVM): sklearn SVM model.
+        accuracy (float): Accuracy of model in percentage form.
+        hog_options (HOGOptions): Configuration of HOG algorithm used to train SVM.
+    '''
     def __init__(self, svm_model, accuracy, hog_options):
         self.svm_model = svm_model
         self.accuracy = accuracy
         self.hog_options = hog_options
 
-def load_image(path):
-    return imread(path)
+def load_image(path, as_gray=True):
+    '''Load image
+    Args:
+        path (string): Filepath of image to load.
+    Returns:
+        numpy.array: Uses skimage's built-in method to load image.
+    '''
+    return imread(path, as_gray=as_gray)
 
 def _sliding_window(image, model, scale, hog_options=HOGOptions(), detection_options=DetectionOptions()):
     '''A sliding window worker method to find faces using image pyramid scales.
@@ -90,22 +131,25 @@ def find_all_face_boxes(image, complete_model, detection_options=DetectionOption
     '''A function to create _sliding_window() processes to detect faces.
     Args:
         image (list): An list represented image to scan.
-        complete_model (Model): An object containing a sklearn LinearSVM model with proba and the HOG configuration it was trained with.
+        complete_model (Model): An object containing a sklearn LinearSVM model with proba and the
+                                HOG configuration it was trained with.
         detection_options (DetectionOptions): Defaults to DetectionOptions().
     Returns:
         possible_faces (list): A list containing detected faces in the form of Face objects.
     '''
     model = complete_model.svm_model
     hog_options = complete_model.hog_options
-
+    # Raise an IndexError if file too small. 
     if image.shape[0] < hog_options.window_size[0] or image.shape[1] < hog_options.window_size[1]:
         print('Image is too small for set window size')
+        raise IndexError
     # Calculate the maximum factor that the window can be multiplied by according to the size of the image.
     if image.shape[0] < image.shape[1]:
         maximum_factor = image.shape[0] / hog_options.window_size[0]
     else:
         maximum_factor = image.shape[1] / hog_options.window_size[1]
     image = rgb2gray(image)
+    # Calculate values to factor by for image pyramid.
     scales = list()
     scale_factor = detection_options.minimum_factor
     while scale_factor <= maximum_factor:
@@ -124,6 +168,13 @@ def find_all_face_boxes(image, complete_model, detection_options=DetectionOption
     return possible_faces
 
 def generate_hog_data(image, hog_options=HOGOptions()):
+    '''Generate Histogram of Oriented Gradients features from given image.
+    Args:
+        image (numpy.array): Image to calculate features from as a numpy array.
+        hog_options (HOGOptions, optional): Defaults to HOGOptions(). Configuration for HOG algorithm.
+    Returns:
+        hog_image (numpy.array): Features of HOG data extracted from image.
+    '''
     # Check if image is correctly sized, if not resize. This may cause images to be distorted and is not prefered.
     if image.shape != hog_options.window_size:
         print('Resizing this could potentially lead to bad data')
@@ -133,16 +184,30 @@ def generate_hog_data(image, hog_options=HOGOptions()):
     return hog_image
 
 def generate_hog_data_from_dir(folder_path, hog_options=HOGOptions(), limit=None):
+    '''Generate Histogram of Oriented Gradient features from given directory.
+    Args:
+        folder_path (string): Folder path of data.
+        hog_options (HOGOptions, optional): Defaults to HOGOptions(). Configuration for
+                                            HOG algorithm.
+        limit (integer, optional): Defaults to None. Limit to amount of data to be imported.
+    Returns:
+        hog_data (list): HOG data for each image in directory.
+    '''
+    # Output all images in given directory
     images = listdir(path=folder_path)
+    # Remove images that go over the limit
     if limit:
         images = images[:limit]
+    # Iterate over each given image
     hog_data = list()
     for image_name in images:
         try:
-            image = imread(join(folder_path,image_name), as_gray=True)
+            # Read image as gray and join name to filepath
+            image = load_image(join(folder_path, image_name), as_gray=True)
             hog_image = generate_hog_data(image, hog_options=hog_options)
             hog_data.append(hog_image)
         except FileNotFoundError:
+            # If file is not found then throw error message
             print('Failed to load '+image_name)
     return hog_data
 
@@ -151,7 +216,6 @@ def _calculate_equalise(x, y):
     Args:
         x (integer): First dataset size.
         y (integer): Second dataset size.
-    
     Returns:
         integer: Size datasets should be cropped to.
     '''
@@ -228,13 +292,24 @@ def premade_train(positive_train, negative_train, positive_test, negative_test):
     score = round(classifier.score(x_test, y_test) * 100)
     return classifier, score
 
-def train(positive_faces_filepath, negative_faces_filepath, hog_options=HOGOptions(), training_options=TrainingOptions()):
+def train(positive_path, negative_path, hog_options=HOGOptions(), train_options=TrainingOptions()):
+    '''Train LinearSVM given just positive and negative data filepaths and configuration info.
+    Args:
+        positive_path (string): Filepath of the folder containing the positive dataset.
+        negative_path (string): Filepath of the folder containing the negative dataset.
+        hog_options (HOGOptions, optional): Defaults to HOGOptions(). Configuration for the HOG
+                                            feature extraction algorithm.
+        train_options (TrainingOptions, optional): Defaults to TrainingOptions(). Configuration
+                                                   for training that's not related to HOG.
+    Returns:
+        model (Model): Model containing trained LinearSVM, HOG configuration and rounded score.
+    '''
     # Generate positive and negative HOG features
-    positive_hog = generate_hog_data_from_dir(positive_faces_filepath, hog_options=hog_options)
-    negative_hog = generate_hog_data_from_dir(negative_faces_filepath, hog_options=hog_options)
+    positive_hog = generate_hog_data_from_dir(positive_path, hog_options=hog_options)
+    negative_hog = generate_hog_data_from_dir(negative_path, hog_options=hog_options)
     # Split training data for testing and training
     pos_train, neg_train, pos_test, neg_test = split_training_data(positive_hog, negative_hog,
-        test_percentage=training_options.testing_proportion, equalise=training_options.equalise)
+        test_percentage=train_options.testing_proportion, equalise=train_options.equalise)
     # Train SVM
     svm_model, score = premade_train(pos_train, neg_train, pos_test, neg_test)
     # Contain SVM model and HOG configuration inside a Model object
