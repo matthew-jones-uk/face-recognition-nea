@@ -2,7 +2,6 @@ import numpy as np
 
 class HOGOptions():
     '''Object to configure HOG algorithm.
-
     Args:
         nbins (int, optional): Defaults to 9. Number of orientation bins for histogram.
         pixels_per_cell (tuple, optional): Defaults to (8, 8). Should be factors of window size.
@@ -18,10 +17,8 @@ class HOGOptions():
 
 def calc_gradient_direction_magnitude(image):
     '''Calculate gradient direction and gradient magnitude for each pixel.
-    
     Args:
         image (numpy.array): Numpy array of a black and white image.
-    
     Returns:
         gradient (numpy.array): Numpy array of gradient direction.
         magnitude (numpy.array): Numpy array of gradient magnitude.
@@ -46,12 +43,10 @@ def calc_gradient_direction_magnitude(image):
 
 def create_histogram(gradient, magnitude, options=HOGOptions()):
     '''Create final histogram from gradients and magnitudes.
-    
     Args:
         gradient (numpy.array): Numpy array of gradient directions for each pixel.
         magnitude (numpy.array): Numpy array of gradient magnitudes for each pixel.
         options (HOGOptions, optional): Defaults to HOGOptions(). HOG algorithm configuration.
-    
     Returns:
         blocks (list): 2D list of each block and corresponding histogram.
     '''
@@ -95,11 +90,9 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
 
 def hog(image, options=HOGOptions()):
     '''Calculate Histograms of Oriented Gradients for image
-    
     Args:
         image (numpy.array): Numpy array of black and white image.
         options (HOGOptions, optional): Defaults to HOGOptions(). HOG algorithm configuration.
-    
     Returns:
         histogram (list): 2D list of each block and corresponding histogram.
     '''
