@@ -65,12 +65,13 @@ class TrainingOptions():
     Args:
         testing_proportion (float): Defaults to 0.15. Proportion of dataset used as testing data.
         equalise (bool): Defaults to True. If the datasets should be of equal size.
-        limit (int): Default to 1500. Limit amount of images features are extracted from.
+        limit (int): Default to 1000000 to not limit by default unless dataset is needlessly large.
+                     It's purpose is to limit the amount of images features are extracted from.
     '''
-    def __init__(self, testing_proportion=0.15, equalise=True, limit=1500):
+    def __init__(self, testing_proportion=0.15, equalise=True, limit=1000000):
         self.testing_proportion = testing_proportion
         self.equalise = equalise
-        self.limit = 1500
+        self.limit = limit
 
 class Model():
     '''Model options object to store SVM model, accuracy and configuration in one object.
