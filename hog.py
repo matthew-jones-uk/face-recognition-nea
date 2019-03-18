@@ -84,12 +84,12 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
         x = 0
         while x < cells.shape[1]-1:
             # select cells that make up block
-            block = cells[y:y+options.cells_per_block[0], x:x+options.cells_per_block[1]]
+            block = cells[y:y+options.cells_per_block[0], x:x+options.cells_per_block[1], :]
             # combine into a single block
-            block = np.sum(block, axis=2)
+            block = np.sum(block, axis=(0, 1))
             # normalise using l2-norm
             normalised_block = block / np.sqrt(np.sum(block) + 1e-7)
-            blocks.append(normalised_block.tolist())
+            blocks.append(normalised_block.flatten())
             x += cell_overlap_x
         y += cell_overlap_y
     return blocks
