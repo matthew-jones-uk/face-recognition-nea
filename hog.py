@@ -28,7 +28,7 @@ def calc_gradient_direction_magnitude(image):
     magnitude = np.zeros(image.shape)
     for y in range(image.shape[0]):
         for x in range(image.shape[1]):
-            if y > 0 and x > 0 and y < image.shape[0] and x < image.shape[1]:
+            if y > 0 and x > 0 and y < image.shape[0]-1 and x < image.shape[1]-1:
                 # simplified calculation of gradient in x and y direction using kernel [-1, 0, 1]
                 gy = image[y+1][x] - image[y-1][x]
                 gx = image[y][x+1] - image[y][x-1]
@@ -37,8 +37,8 @@ def calc_gradient_direction_magnitude(image):
                 # remove any values below 0 to give range 0-180
                 if gradient[y][x] < 0:
                     gradient[y][x] += 180
-                # simple magnitude calculation 
-                magnitude[y][x] = np.sqrt(gy**2, gx**2)
+                # simple magnitude calculation
+                magnitude[y][x] = np.sqrt(gy**2 + gx**2)
     return gradient, magnitude
 
 def create_histogram(gradient, magnitude, options=HOGOptions()):
@@ -56,21 +56,27 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
     # resize image so that any pixels that don't fit into cells are discarded
     image_size_y = n_cells_y * options.pixels_per_cell[0]
     image_size_x = n_cells_x * options.pixels_per_cell[1]
-    gradient = gradient[:image_size_y, :image_size_x]
-    magnitude = magnitude[:image_size_y, image_size_x]
+    gradient = gradient[:image_size_y-1, :image_size_x-1]
+    magnitude = magnitude[:image_size_y-1, :image_size_x-1]
     # create cells
     cells = np.zeros((n_cells_y, n_cells_x, options.nbins))
     bin_size = 180 // options.nbins
     for y in range(gradient.shape[0]):
         for x in range(gradient.shape[1]):
+            # calculate which orientation bin the pixel belongs to
+            bin_number = int(gradient[y][x] // bin_size)
+            # when gradient is 180 the bin size should fit into the previous range, not a new one
+            if bin_number == options.nbins:
+                bin_number -= 1
             # calculates which cell and orientation bin each pixel belongs to and adds its magnitude
-            cells[y // n_cells_y][x // n_cells_x][magnitude // bin_size] += magnitude[y][x]
+            cells[y // n_cells_y][x // n_cells_x][bin_number] += magnitude[y][x]
     # calculate cell overlap amount
-    cell_overlap_y, cell_overlap_x = options.cells_per_block // 2
+    cell_overlap_y = options.cells_per_block[0] // 2
+    cell_overlap_x = options.cells_per_block[1] // 2
     # resize cells and discarded any that don't fit into a block
-    remainder_y = cells.shape % cell_overlap_y
-    remainder_x = cells.shape % cell_overlap_x
-    cells = cells[-remainder_y, -remainder_x]
+    remainder_y = cells.shape[0] // cell_overlap_y
+    remainder_x = cells.shape[1] // cell_overlap_x
+    cells = cells[:remainder_y, :remainder_x, :]
     # create blocks with overlap 50%
     blocks = list()
     y = 0
