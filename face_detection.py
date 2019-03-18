@@ -107,6 +107,15 @@ def _sliding_window(image, model, scale, hog_options=HOGOptions(),
         found_faces (list): All suspected faces.
     '''
     found_faces = list()
+    # If these specific conditions are met then sliding window will not work
+    if scale == 1 and image.shape == hog_options.window_size:
+        window_hog = hog(image, options=hog_options)
+        print(window_hog.shape)
+        model_probability = model.predict_proba([window_hog])[:, 1][0]
+        if model_probability >= detection_options.accept_threshold:
+            found_faces.append(Face((0, 0), (image.shape[0]-1, image.shape[1]-1),
+                               model_probability))
+            return found_faces
     # Rescale the image to form an image pyramid.
     rescaled_image = rescale(image, 1/scale, mode='reflect')
     # Calculate overlap pixel size from dimension average.
