@@ -4,6 +4,7 @@ from time import sleep, time
 from base64 import b64encode
 from uuid import uuid4
 import pickle
+import threading
 from flask import Flask, jsonify, request
 from skimage.io import imsave
 import db
@@ -176,7 +177,7 @@ def detect_faces(image):
         face.find_face_image(image)
     return found_faces
 
-def new_image_detector():
+def new_image_detector(db_handler):
     '''Checks the testing image directory for any new images then processes and adds to database.
        Should be run in own process due to CPU and IO heavy and blocking nature.
     '''
@@ -242,7 +243,7 @@ def run():
                     needed_votes integer NOT NULL,
                     active integer DEFAULT 1
             )     
-        ''')
+        ''')    
     app.run(debug=True, host='0.0.0.0')
 
 if __name__ == '__main__':
