@@ -187,8 +187,11 @@ def new_image_detector(db_handler):
         faces = list()
         # for every file in directory, detect faces and remove file
         for image_file in files:
-            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE, image_file)))
+            print('Found new face', image_file)
+            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
+                                         DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
             remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
+        print('Found', len(faces), 'faces in total!')
         # for any detected face generate unique id, save file and add to database
         for face in faces:
             checking = True
