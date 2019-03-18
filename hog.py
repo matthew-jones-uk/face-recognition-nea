@@ -85,14 +85,15 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
         while x < cells.shape[1]-1:
             # select cells that make up block
             block = cells[y:y+options.cells_per_block[0], x:x+options.cells_per_block[1], :]
-            # combine into a single block
+            # combine cells into a single block
             block = np.sum(block, axis=(0, 1))
             # normalise using l2-norm
             normalised_block = block / np.sqrt(np.sum(block) + 1e-7)
             blocks.append(normalised_block.flatten())
             x += cell_overlap_x
         y += cell_overlap_y
-    return blocks
+    # combine block histograms into a single histogram feature descriptor
+    return np.sum(np.array(blocks), axis=0)
 
 def hog(image, options=HOGOptions()):
     '''Calculate Histograms of Oriented Gradients for image
