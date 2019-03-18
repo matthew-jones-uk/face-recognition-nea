@@ -14,7 +14,7 @@ INSTANCE = 'instance'
 DATABASE_FILENAME = 'db.sqlite'
 DATABASE_IMAGES_DIRECTORY = 'images'
 DATABASE_TESTING_IMAGES_DIRECTORY = 'testing_images'
-ROOT_MODEL_FILENAME = 'model.sav'
+ROOT_MODEL_FILENAME = 'model'
 
 DETECTOR_TIMEOUT = 60
 
@@ -152,7 +152,7 @@ def get_model():
     for test_file in all_files:
         if test_file.startswith(ROOT_MODEL_FILENAME):
             try:
-                number = int(''.join([int(s) for s in test_file if s.isdigit()]))
+                number = int(''.join([s for s in test_file if s.isdigit()]))
             except ValueError:
                 # if no number can be found, default to zero
                 number = 0
@@ -162,7 +162,7 @@ def get_model():
     keys = list(model_files.keys())
     model = keys[values.index(max(values))]
     # load the model as a face_detection.Model using pickle
-    return pickle.load(join(INSTANCE, model))
+    return pickle.load(open(join(INSTANCE, model), 'rb'))
 
 def detect_faces(image):
     '''This founction uses the face_detection module to find any faces in an image
