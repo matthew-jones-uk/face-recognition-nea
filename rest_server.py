@@ -3,8 +3,8 @@ from os import makedirs, listdir, remove
 from time import sleep, time
 from base64 import b64encode
 from uuid import uuid4
+from threading import Thread
 import pickle
-import threading
 from flask import Flask, jsonify, request
 from skimage.io import imsave
 import db
@@ -243,7 +243,11 @@ def run():
                     needed_votes integer NOT NULL,
                     active integer DEFAULT 1
             )     
-        ''')    
+        ''')
+    # Create thread that periodically checks for new files.
+    checker = Thread(target=new_image_detector, args=(db_handler, ))
+    # Start the checker thread but do not join.
+    checker.start()
     app.run(debug=True, host='0.0.0.0')
 
 if __name__ == '__main__':
