@@ -80,9 +80,9 @@ def create_histogram(gradient, magnitude, options=HOGOptions()):
     # create blocks with overlap 50%
     blocks = list()
     y = 0
-    while y < cells.shape[0]:
+    while y < cells.shape[0]-1:
         x = 0
-        while x < cells.shape[1]:
+        while x < cells.shape[1]-1:
             # select cells that make up block
             block = cells[y:y+options.cells_per_block[0], x:x+options.cells_per_block[1]]
             # combine into a single block
