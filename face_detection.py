@@ -311,9 +311,11 @@ def train(positive_path, negative_path, hog_options=HOGOptions(), train_options=
     Returns:
         model (Model): Model containing trained LinearSVM, HOG configuration and rounded score.
     '''
+    # Get limit of images to extract features from
+    limit = train_options.limit
     # Generate positive and negative HOG features
-    positive_hog = generate_hog_data_from_dir(positive_path, hog_options=hog_options)
-    negative_hog = generate_hog_data_from_dir(negative_path, hog_options=hog_options)
+    positive_hog = generate_hog_data_from_dir(positive_path, hog_options=hog_options, limit=limit)
+    negative_hog = generate_hog_data_from_dir(negative_path, hog_options=hog_options, limit=limit)
     # Split training data for testing and training
     test_prop = train_options.testing_proportion
     p_train, n_train, p_test, n_test = split_training_data(positive_hog, negative_hog,
