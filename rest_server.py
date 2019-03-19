@@ -141,6 +141,13 @@ def give_vote():
         response.status_code = 200
         return response
 
+@app.before_first_request
+def activate_background():
+    # Create thread that periodically checks for new files.
+    checker = Thread(target=new_image_detector, args=(db_handler, ))
+    # Start the checker thread but do not join.
+    checker.start()
+
 def get_model():
     '''This function retrieves the latest saved version of the detection model based on filenames.
     Returns:
@@ -181,13 +188,14 @@ def new_image_detector(db_handler):
     '''Checks the testing image directory for any new images then processes and adds to database.
        Should be run in own process due to CPU and IO heavy and blocking nature.
     '''
+    print('Started background image detector!')
     while True:
         # get all files in directory
         files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
         faces = list()
         # for every file in directory, detect faces and remove file
         for image_file in files:
-            print('Found new face', image_file)
+            print('Found new image file', image_file)
             faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
                                          DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
             remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
@@ -247,10 +255,6 @@ def run():
                     active integer DEFAULT 1
             )     
         ''')
-    # Create thread that periodically checks for new files.
-    checker = Thread(target=new_image_detector, args=(db_handler, ))
-    # Start the checker thread but do not join.
-    checker.start()
     app.run(debug=True, host='0.0.0.0')
 
 if __name__ == '__main__':
