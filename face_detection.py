@@ -298,7 +298,7 @@ def premade_train(positive_train, negative_train, positive_test, negative_test):
         x_test.append(data)
         y_test.append(0)
     # Briefly calculate best values for training
-    parameter_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
+    parameter_grid = {'C': [2e-4, 2e-3, 2e-2, 2e-1, 2, 2e2, 2e3]}
     grid_search = GridSearchCV(LinearSVC(), parameter_grid)
     grid_search.fit(x_train, y_train)
     # Calculate SVM using all data given
