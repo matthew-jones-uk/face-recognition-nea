@@ -204,7 +204,7 @@ def new_image_detector(db_handler):
         for face in faces:
             checking = True
             while checking:
-                unique_id = uuid4()
+                unique_id = str(uuid4())
                 with db_handler:
                     record = db_handler.cursor.execute('''
                                 SELECT * FROM images WHERE id = "{}"'''.format(unique_id)).fetchone()
