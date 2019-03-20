@@ -148,6 +148,10 @@ def run():
         makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
     if not isdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
+    if not isdir(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY)):
+        makedirs(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY))
+    if not isdir(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
+        makedirs(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
     # creates database if not already made
     with db_handler:
         db_handler.cursor.executescript('''
