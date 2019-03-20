@@ -22,6 +22,10 @@ DETECTOR_TIMEOUT = 60
 
 app = Flask(__name__)
 
+# Checks if instance exists as this is key for operation
+if not isdir(INSTANCE):
+        makedirs(INSTANCE)
+
 db_handler = db.ThreadHandler(join(INSTANCE, DATABASE_FILENAME))
 
 def get_model():
@@ -142,8 +146,6 @@ def check_image_status(given_id):
 def run():
     ''' Main application function '''
     # this will check if required directories exist and if they don't, create them
-    if not isdir(INSTANCE):
-        makedirs(INSTANCE)
     if not isdir(join(INSTANCE, DATABASE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
     if not isdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY)):
@@ -152,20 +154,6 @@ def run():
         makedirs(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY))
     if not isdir(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
-    # creates database if not already made
-    with db_handler:
-        db_handler.cursor.executescript('''
-        CREATE TABLE IF NOT EXISTS images (
-                    id text UNIQUE PRIMARY KEY NOT NULL, 
-                    filename text UNIQUE NOT NULL,
-                    start_date integer,
-                    probability real,
-                    positive_votes integer DEFAULT 0,
-                    negative_votes integer DEFAULT 0,
-                    needed_votes integer NOT NULL,
-                    active integer DEFAULT 1
-            )     
-        ''')
     app.run(debug=True, host='0.0.0.0')
 
 '''
