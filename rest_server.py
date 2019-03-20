@@ -44,6 +44,9 @@ def get_model():
                 # if no number can be found, default to zero
                 number = 0
             model_files[test_file] = number
+    # check if dictionary is empty and stop as no models are found
+    print('No model found!')
+    raise FileNotFoundError
     # get highest value in dictionary
     values = list(model_files.values())
     keys = list(model_files.keys())
@@ -134,14 +137,17 @@ def check_image_status(given_id):
     needed_votes = record[6]
     filename = record[1]
     # Check negative votes
-    if record[5] >= needed_votes:
-        mark_as_done()
-        rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
-               join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY, filename))
-    if record[4] >= needed_votes:
-        mark_as_done()
-        rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
-               join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY, filename))
+    try:
+        if record[5] >= needed_votes:
+            mark_as_done()
+            rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
+                join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY, filename))
+        if record[4] >= needed_votes:
+            mark_as_done()
+            rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
+                join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY, filename))
+    except FileNotFoundError:
+        pass
 
 def run():
     ''' Main application function '''
