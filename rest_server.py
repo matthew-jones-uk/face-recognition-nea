@@ -119,7 +119,7 @@ def check_image_status(given_id):
                     UPDATE images
                     SET active = 0
                     WHERE id = "{}"
-                '''.format(given_id))
+                '''.format(given_id)
             )
     with db_handler:
         record = db_handler.cursor.execute(
@@ -150,7 +150,7 @@ def run():
         makedirs(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
     if not isdir(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY))
-    if not isdir(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
+    if not isdir(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
     # creates database if not already made
     with db_handler:
