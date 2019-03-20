@@ -188,18 +188,7 @@ def new_image_detector(db_handler):
     '''Checks the testing image directory for any new images then processes and adds to database.
        Should be run in own process due to CPU and IO heavy and blocking nature.
     '''
-    print('Started background image detector!')
-    while True:
-        # get all files in directory
-        files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
-        faces = list()
-        # for every file in directory, detect faces and remove file
-        for image_file in files:
-            print('Found new image file', image_file)
-            faces = faces + detect_faces(face_detection.load_image(join(INSTANCE,
-                                         DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
-            remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
-        print('Found', len(faces), 'faces in total!')
+    def process_faces(faces):
         # for any detected face generate unique id, save file and add to database
         for face in faces:
             checking = True
@@ -222,14 +211,29 @@ def new_image_detector(db_handler):
                         probability,
                         needed_votes
                     ) VALUES (
-                        {},
-                        {},
+                        "{}",
+                        "{}",
                         {},
                         {},
                         {}
                     )
                 '''.format(unique_id, filename, time(), face.probability, needed_votes))
-            imsave(filename, face.face_image)
+            imsave(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename), face.face_image)
+
+    print('Started background image detector!')
+    while True:
+        # get all files in directory
+        files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
+        faces = list()
+        # for every file in directory, detect faces and remove file
+        for image_file in files:
+            print('Found new image file', image_file)
+            faces = detect_faces(face_detection.load_image(join(INSTANCE,
+                                         DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
+            print('Found', len(faces), 'faces!')
+            process_faces(faces)
+            remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
+        
         sleep(DETECTOR_TIMEOUT)
 
 def run():
