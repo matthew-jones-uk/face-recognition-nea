@@ -14,6 +14,8 @@ INSTANCE = 'instance'
 DATABASE_FILENAME = 'db.sqlite'
 DATABASE_IMAGES_DIRECTORY = 'images'
 DATABASE_TESTING_IMAGES_DIRECTORY = 'testing_images'
+DATABASE_NEGATIVE_IMAGES_DIRECTORY = 'negative_images'
+DATABASE_POSITIVE_IMAGES_DIRECTORY = 'positive_images'
 ROOT_MODEL_FILENAME = 'model'
 
 DETECTOR_TIMEOUT = 60
@@ -21,6 +23,119 @@ DETECTOR_TIMEOUT = 60
 app = Flask(__name__)
 
 db_handler = db.ThreadHandler(join(INSTANCE, DATABASE_FILENAME))
+
+def get_model():
+    '''This function retrieves the latest saved version of the detection model based on filenames.
+    Returns:
+        face_detection.Model: Detection model
+    '''
+    # retrieve all model files and calculate latest based on number after root name
+    all_files = listdir(INSTANCE)
+    model_files = dict()
+    for test_file in all_files:
+        if test_file.startswith(ROOT_MODEL_FILENAME):
+            try:
+                number = int(''.join([s for s in test_file if s.isdigit()]))
+            except ValueError:
+                # if no number can be found, default to zero
+                number = 0
+            model_files[test_file] = number
+    # get highest value in dictionary
+    values = list(model_files.values())
+    keys = list(model_files.keys())
+    model = keys[values.index(max(values))]
+    # load the model as a face_detection.Model using pickle
+    return pickle.load(open(join(INSTANCE, model), 'rb'))
+
+def detect_faces(image):
+    '''This founction uses the face_detection module to find any faces in an image
+    Args:
+        image (Image): Skimage image array format
+    Returns:
+        list: Returns a list of face_detection.Face objects
+    '''
+    model = get_model()
+    found_faces = face_detection.find_all_face_boxes(image, model)
+    for face in found_faces:
+        face.find_face_image(image)
+    return found_faces
+
+def new_image_detector(db_handler):
+    '''Checks the testing image directory for any new images then processes and adds to database.
+       Should be run in own process due to CPU and IO heavy and blocking nature.
+    '''
+    def process_faces(faces):
+        # for any detected face generate unique id, save file and add to database
+        for face in faces:
+            checking = True
+            while checking:
+                unique_id = str(uuid4())
+                with db_handler:
+                    record = db_handler.cursor.execute('''
+                                SELECT * FROM images WHERE id = "{}"'''.format(unique_id)).fetchone()
+                if not record:
+                    checking = False
+            filename = unique_id+'.png'
+            # calculate needed votes out of 10
+            needed_votes = 10 - round(face.probability*100, -1)/10
+            with db_handler:
+                db_handler.cursor.execute('''
+                    INSERT INTO images (
+                        id,
+                        filename,
+                        start_date,
+                        probability,
+                        needed_votes
+                    ) VALUES (
+                        "{}",
+                        "{}",
+                        {},
+                        {},
+                        {}
+                    )
+                '''.format(unique_id, filename, time(), face.probability, needed_votes))
+            imsave(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename), face.face_image)
+
+    print('Started background image detector!')
+    while True:
+        # get all files in directory
+        files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
+        faces = list()
+        # for every file in directory, detect faces and remove file
+        for image_file in files:
+            print('Found new image file', image_file)
+            faces = detect_faces(face_detection.load_image(join(INSTANCE,
+                                         DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
+            print('Found', len(faces), 'faces!')
+            process_faces(faces)
+            remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
+        
+        sleep(DETECTOR_TIMEOUT)
+
+def run():
+    ''' Main application function '''
+    # this will check if required directories exist and if they don't, create them
+    if not isdir(INSTANCE):
+        makedirs(INSTANCE)
+    if not isdir(join(INSTANCE, DATABASE_IMAGES_DIRECTORY)):
+        makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
+    if not isdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY)):
+        makedirs(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
+    # creates database if not already made
+    with db_handler:
+        db_handler.cursor.executescript('''
+        CREATE TABLE IF NOT EXISTS images (
+                    id text UNIQUE PRIMARY KEY NOT NULL, 
+                    filename text UNIQUE NOT NULL,
+                    start_date integer,
+                    probability real,
+                    positive_votes integer DEFAULT 0,
+                    negative_votes integer DEFAULT 0,
+                    needed_votes integer NOT NULL,
+                    active integer DEFAULT 1
+            )     
+        ''')
+    app.run(debug=True, host='0.0.0.0')
 
 '''
 Error Codes:
@@ -147,119 +262,6 @@ def activate_background():
     checker = Thread(target=new_image_detector, args=(db_handler, ))
     # Start the checker thread but do not join.
     checker.start()
-
-def get_model():
-    '''This function retrieves the latest saved version of the detection model based on filenames.
-    Returns:
-        face_detection.Model: Detection model
-    '''
-    # retrieve all model files and calculate latest based on number after root name
-    all_files = listdir(INSTANCE)
-    model_files = dict()
-    for test_file in all_files:
-        if test_file.startswith(ROOT_MODEL_FILENAME):
-            try:
-                number = int(''.join([s for s in test_file if s.isdigit()]))
-            except ValueError:
-                # if no number can be found, default to zero
-                number = 0
-            model_files[test_file] = number
-    # get highest value in dictionary
-    values = list(model_files.values())
-    keys = list(model_files.keys())
-    model = keys[values.index(max(values))]
-    # load the model as a face_detection.Model using pickle
-    return pickle.load(open(join(INSTANCE, model), 'rb'))
-
-def detect_faces(image):
-    '''This founction uses the face_detection module to find any faces in an image
-    Args:
-        image (Image): Skimage image array format
-    Returns:
-        list: Returns a list of face_detection.Face objects
-    '''
-    model = get_model()
-    found_faces = face_detection.find_all_face_boxes(image, model)
-    for face in found_faces:
-        face.find_face_image(image)
-    return found_faces
-
-def new_image_detector(db_handler):
-    '''Checks the testing image directory for any new images then processes and adds to database.
-       Should be run in own process due to CPU and IO heavy and blocking nature.
-    '''
-    def process_faces(faces):
-        # for any detected face generate unique id, save file and add to database
-        for face in faces:
-            checking = True
-            while checking:
-                unique_id = str(uuid4())
-                with db_handler:
-                    record = db_handler.cursor.execute('''
-                                SELECT * FROM images WHERE id = "{}"'''.format(unique_id)).fetchone()
-                if not record:
-                    checking = False
-            filename = unique_id+'.png'
-            # calculate needed votes out of 10
-            needed_votes = 10 - round(face.probability*100, -1)/10
-            with db_handler:
-                db_handler.cursor.execute('''
-                    INSERT INTO images (
-                        id,
-                        filename,
-                        start_date,
-                        probability,
-                        needed_votes
-                    ) VALUES (
-                        "{}",
-                        "{}",
-                        {},
-                        {},
-                        {}
-                    )
-                '''.format(unique_id, filename, time(), face.probability, needed_votes))
-            imsave(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename), face.face_image)
-
-    print('Started background image detector!')
-    while True:
-        # get all files in directory
-        files = listdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
-        faces = list()
-        # for every file in directory, detect faces and remove file
-        for image_file in files:
-            print('Found new image file', image_file)
-            faces = detect_faces(face_detection.load_image(join(INSTANCE,
-                                         DATABASE_TESTING_IMAGES_DIRECTORY, image_file)))
-            print('Found', len(faces), 'faces!')
-            process_faces(faces)
-            remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
-        
-        sleep(DETECTOR_TIMEOUT)
-
-def run():
-    ''' Main application function '''
-    # this will check if required directories exist and if they don't, create them
-    if not isdir(INSTANCE):
-        makedirs(INSTANCE)
-    if not isdir(join(INSTANCE, DATABASE_IMAGES_DIRECTORY)):
-        makedirs(join(INSTANCE, DATABASE_IMAGES_DIRECTORY))
-    if not isdir(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY)):
-        makedirs(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY))
-    # creates database if not already made
-    with db_handler:
-        db_handler.cursor.executescript('''
-        CREATE TABLE IF NOT EXISTS images (
-                    id text UNIQUE PRIMARY KEY NOT NULL, 
-                    filename text UNIQUE NOT NULL,
-                    start_date integer,
-                    probability real,
-                    positive_votes integer DEFAULT 0,
-                    negative_votes integer DEFAULT 0,
-                    needed_votes integer NOT NULL,
-                    active integer DEFAULT 1
-            )     
-        ''')
-    app.run(debug=True, host='0.0.0.0')
 
 if __name__ == '__main__':
     run()
