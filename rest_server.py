@@ -1,5 +1,5 @@
 from os.path import join, isdir
-from os import makedirs, listdir, remove
+from os import makedirs, listdir, remove, rename
 from time import sleep, time
 from base64 import b64encode
 from uuid import uuid4
@@ -111,6 +111,33 @@ def new_image_detector(db_handler):
             remove(join(INSTANCE, DATABASE_TESTING_IMAGES_DIRECTORY, image_file))
         
         sleep(DETECTOR_TIMEOUT)
+
+def check_image_status(given_id):
+    def mark_as_done():
+        with db_handler:
+            db_handler.cursor.execute('''
+                    UPDATE images
+                    SET active = 0
+                    WHERE id = "{}"
+                '''.format(given_id))
+            )
+    with db_handler:
+        record = db_handler.cursor.execute(
+            'SELECT * FROM images WHERE id = "{}"'.format(given_id)
+        ).fetchone()
+    if record is None:
+        return
+    needed_votes = record[6]
+    filename = record[1]
+    # Check negative votes
+    if record[5] >= needed_votes:
+        mark_as_done()
+        rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
+               join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY, filename))
+    if record[4] >= needed_votes:
+        mark_as_done()
+        rename(join(INSTANCE, DATABASE_IMAGES_DIRECTORY, filename),
+               join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY, filename))
 
 def run():
     ''' Main application function '''
@@ -254,6 +281,7 @@ def give_vote():
         # return status code 200 OK and success json status code
         response = jsonify(status=0, id=given_id)
         response.status_code = 200
+        check_image_status(given_id)
         return response
 
 @app.before_first_request
