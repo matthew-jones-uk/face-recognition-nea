@@ -252,6 +252,11 @@ def give_vote():
         return response
     else:
         given_id, vote = json['id'], json['vote']
+        # checks if vote is boolean if not, return code 400 bad request.
+        if not isinstance(vote, bool):
+            response = jsonify(status=3, id=given_id)
+            response.status_code = 400
+            return response
         # check if id is valid in database
         with db_handler:
             record = db_handler.cursor.execute(
