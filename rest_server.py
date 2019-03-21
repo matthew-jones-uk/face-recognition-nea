@@ -45,8 +45,9 @@ def get_model():
                 number = 0
             model_files[test_file] = number
     # check if dictionary is empty and stop as no models are found
-    print('No model found!')
-    raise FileNotFoundError
+    if not model_files:
+        print('No model found!')
+        raise FileNotFoundError
     # get highest value in dictionary
     values = list(model_files.values())
     keys = list(model_files.keys())
