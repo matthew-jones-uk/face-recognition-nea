@@ -62,8 +62,11 @@ def detect_faces(image):
     Returns:
         list: Returns a list of face_detection.Face objects
     '''
+    # get model
     model = get_model()
+    # detect faces
     found_faces = face_detection.find_all_face_boxes(image, model)
+    # add image of face to face object opposed to just the location
     for face in found_faces:
         face.find_face_image(image)
     return found_faces
@@ -161,6 +164,8 @@ def run():
         makedirs(join(INSTANCE, DATABASE_NEGATIVE_IMAGES_DIRECTORY))
     if not isdir(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY)):
         makedirs(join(INSTANCE, DATABASE_POSITIVE_IMAGES_DIRECTORY))
+    # check if model exists on startup
+    get_model()
     app.run(debug=True, host='0.0.0.0')
 
 '''
